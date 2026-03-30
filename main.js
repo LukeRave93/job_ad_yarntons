@@ -41,20 +41,23 @@ async function initChat() {
   setInputEnabled(false);
 
   try {
-    // Conversation is loaded via CDN <script> in index.html as window.ElevenLabsClient
-    const { Conversation } = window.ElevenLabsClient;
+    // UMD global is window.client — confirmed from lib.umd.js source: e.Conversation = x
+    const Conversation = window.client && window.client.Conversation;
+    if (!Conversation) throw new Error('ElevenLabs SDK not loaded — check CDN script');
 
     convSession = await Conversation.startSession({
-      agentId:  AGENT_ID,
-      textOnly: true,   // no mic, no audio context
+      agentId: AGENT_ID,
 
-      // Pass applicant details as dynamic variables so the agent knows who it's talking to
-      conversationConfigOverride: {
-        agent: {
-          prompt: {
-            prompt: `The applicant's name is ${applicant.name}. Their email is ${applicant.email} and mobile is ${applicant.mobile}.`
-          }
-        }
+      // textOnly must go through overrides.conversation.textOnly per SDK source
+      overrides: {
+        conversation: { textOnly: true }
+      },
+
+      // dynamicVariables are passed to the agent — define matching {{variable}} in the agent prompt
+      dynamicVariables: {
+        applicant_name:   applicant.name,
+        applicant_email:  applicant.email,
+        applicant_mobile: applicant.mobile
       },
 
       onConnect: () => {
@@ -64,14 +67,11 @@ async function initChat() {
       },
 
       onDisconnect: () => {
-        if (!chatEnded) {
-          setInputEnabled(false);
-        }
+        if (!chatEnded) setInputEnabled(false);
       },
 
       onMessage: (msg) => {
-        // msg.source: 'ai' | 'user', msg.message: string, msg.type: 'transcript' | 'interruption'
-        if (msg.source === 'ai' && msg.type !== 'interruption') {
+        if (msg.source === 'ai') {
           hideLoading();
           appendMessage('agent', msg.message);
           conversation.push({ role: 'assistant', content: msg.message });
