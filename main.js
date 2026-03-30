@@ -1,15 +1,14 @@
 // ─── Config ───────────────────────────────────────────────
-const AGENT_ID   = 'agent_3901kmy8q67ke5qs7b51whkady4z';
-const SHEET_URL  = 'YOUR_GOOGLE_APPS_SCRIPT_URL_HERE';
+const AGENT_ID  = 'agent_3901kmy8q67ke5qs7b51whkady4z';
+const SHEET_URL = 'YOUR_GOOGLE_APPS_SCRIPT_URL_HERE';
 
 // ─── State ────────────────────────────────────────────────
-let applicant = { name: '', email: '', mobile: '' };
+let applicant    = { name: '', email: '', mobile: '' };
 let conversation = [];
-let conversationId = null;
-let awaitingReply = false;
-let chatEnded = false;
+let convSession  = null;   // ElevenLabs Conversation instance
+let chatEnded    = false;
 
-// ─── Step 1: Validate and start ───────────────────────────
+// ─── Step 1: Validate and proceed ─────────────────────────
 function handleStart() {
   const name   = document.getElementById('f-name').value.trim();
   const email  = document.getElementById('f-email').value.trim();
@@ -18,12 +17,11 @@ function handleStart() {
 
   errEl.style.display = 'none';
 
-  if (!name)                                  return showErr('Please add your name.');
-  if (!email || !email.includes('@'))         return showErr('Please enter a valid email address.');
-  if (!mobile || mobile.length < 7)           return showErr('Please add your mobile number.');
+  if (!name)                         return showErr('Please add your name.');
+  if (!email || !email.includes('@')) return showErr('Please enter a valid email address.');
+  if (!mobile || mobile.length < 7)  return showErr('Please add your mobile number.');
 
   applicant = { name, email, mobile };
-
   logToSheet({ ...applicant, stage: 'started', timestamp: new Date().toISOString() });
 
   showStep('step-chat');
@@ -37,32 +35,87 @@ function showStep(id) {
   window.scrollTo({ top: 0, behavior: 'smooth' });
 }
 
-// ─── Chat init ────────────────────────────────────────────
+// ─── Init ElevenLabs text-only session ────────────────────
 async function initChat() {
+  showLoading();
+  setInputEnabled(false);
+
   try {
-    const res = await fetch(
-      `https://api.elevenlabs.io/v1/convai/conversation?agent_id=${AGENT_ID}`,
-      { method: 'GET', headers: { 'Content-Type': 'application/json' } }
-    );
+    // Conversation is loaded via CDN <script> in index.html as window.ElevenLabsClient
+    const { Conversation } = window.ElevenLabsClient;
 
-    // Use the signed URL approach to start a conversation session
-    const data = await res.json();
-    conversationId = data.conversation_id || generateId();
+    convSession = await Conversation.startSession({
+      agentId:  AGENT_ID,
+      textOnly: true,   // no mic, no audio context
 
-    // Send opening context with applicant details, then get first message
-    await agentTurn(`The applicant's name is ${applicant.name}. Their email is ${applicant.email} and mobile is ${applicant.mobile}. Please greet them by first name and begin the interview.`, true);
+      // Pass applicant details as dynamic variables so the agent knows who it's talking to
+      conversationConfigOverride: {
+        agent: {
+          prompt: {
+            prompt: `The applicant's name is ${applicant.name}. Their email is ${applicant.email} and mobile is ${applicant.mobile}.`
+          }
+        }
+      },
+
+      onConnect: () => {
+        hideLoading();
+        setInputEnabled(true);
+        document.getElementById('chat-input').focus();
+      },
+
+      onDisconnect: () => {
+        if (!chatEnded) {
+          setInputEnabled(false);
+        }
+      },
+
+      onMessage: (msg) => {
+        // msg.source: 'ai' | 'user', msg.message: string, msg.type: 'transcript' | 'interruption'
+        if (msg.source === 'ai' && msg.type !== 'interruption') {
+          hideLoading();
+          appendMessage('agent', msg.message);
+          conversation.push({ role: 'assistant', content: msg.message });
+
+          const endPhrases = [
+            "that's everything from me",
+            "be in touch directly",
+            "appreciate you taking the time"
+          ];
+
+          if (endPhrases.some(p => msg.message.toLowerCase().includes(p))) {
+            chatEnded = true;
+            setInputEnabled(false);
+            logToSheet({
+              ...applicant,
+              stage: 'completed',
+              transcript: formatTranscript(conversation),
+              timestamp: new Date().toISOString()
+            });
+            setTimeout(() => showStep('step-done'), 2200);
+          }
+        }
+      },
+
+      onError: (err) => {
+        console.error('ElevenLabs error:', err);
+        hideLoading();
+        appendMessage('agent', 'Something went wrong on our end — feel free to email us at careers@yarntons.co.nz.');
+        setInputEnabled(false);
+        chatEnded = true;
+      }
+    });
 
   } catch (err) {
-    console.error('Chat init error:', err);
-    // Fallback: show opening message directly
+    console.error('Session start error:', err);
     hideLoading();
-    appendMessage('agent', `Hey ${applicant.name.split(' ')[0]}, thanks for putting your hand up — really appreciate it. We'll keep this quick, five minutes or so. Just a few questions to get to know you a bit before someone from the team follows up. Ready to go?`);
+    appendMessage('agent', `Hey ${firstName()}, something went wrong connecting to our chat. Please email us at careers@yarntons.co.nz and we'll be in touch.`);
+    setInputEnabled(false);
   }
 }
 
 // ─── Send user message ────────────────────────────────────
 async function sendMessage() {
-  if (awaitingReply || chatEnded) return;
+  if (chatEnded || !convSession) return;
 
   const input = document.getElementById('chat-input');
   const text  = input.value.trim();
@@ -74,124 +127,32 @@ async function sendMessage() {
   appendMessage('user', text);
   conversation.push({ role: 'user', content: text });
 
-  await agentTurn(text, false);
-}
-
-// ─── Get agent reply via ElevenLabs Conversational AI REST ─
-async function agentTurn(userText, isSystem) {
-  awaitingReply = true;
   setInputEnabled(false);
   showLoading();
 
   try {
-    const messages = buildMessages(userText, isSystem);
-
-    const res = await fetch('https://api.elevenlabs.io/v1/convai/conversation/get-signed-url', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        agent_id: AGENT_ID,
-        conversation_id: conversationId,
-        messages: messages
-      })
-    });
-
-    let reply = '';
-
-    if (res.ok) {
-      const data = await res.json();
-      reply = data.reply || data.message || data.text || '';
-    }
-
-    // Fallback to direct LLM call if REST endpoint differs
-    if (!reply) {
-      reply = await callAgentDirect(messages);
-    }
-
-    hideLoading();
-
-    if (reply) {
-      appendMessage('agent', reply);
-      conversation.push({ role: 'assistant', content: reply });
-
-      // Detect conversation end
-      const endPhrases = ["that's everything from me", "be in touch directly", "appreciate you taking the time"];
-      if (endPhrases.some(p => reply.toLowerCase().includes(p))) {
-        chatEnded = true;
-        setInputEnabled(false);
-        logToSheet({
-          ...applicant,
-          stage: 'completed',
-          transcript: JSON.stringify(conversation),
-          timestamp: new Date().toISOString()
-        });
-        setTimeout(() => showStep('step-done'), 2000);
-        return;
-      }
-    }
-
+    // sendUserMessage is the correct SDK method for text-only conversations
+    await convSession.sendUserMessage(text);
   } catch (err) {
-    console.error('Agent turn error:', err);
+    console.error('sendUserMessage error:', err);
     hideLoading();
-    appendMessage('agent', 'Sorry, something went wrong on our end. Feel free to email us directly at careers@yarntons.co.nz.');
-    chatEnded = true;
-    setInputEnabled(false);
-    return;
+    appendMessage('agent', 'Sorry, that message didn\'t go through. Try again?');
+    setInputEnabled(true);
   }
-
-  awaitingReply = false;
-  setInputEnabled(true);
-  document.getElementById('chat-input').focus();
-}
-
-// ─── Direct agent API call (primary path) ─────────────────
-async function callAgentDirect(messages) {
-  const res = await fetch(`https://api.elevenlabs.io/v1/convai/agents/${AGENT_ID}/chat`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ messages })
-  });
-
-  if (!res.ok) return '';
-  const data = await res.json();
-  return data.reply || data.message || data.response || data.text || '';
-}
-
-// ─── Build message history for API ───────────────────────
-function buildMessages(userText, isSystem) {
-  const msgs = [];
-
-  // Inject applicant context as first system-style user message
-  if (conversation.length === 0) {
-    msgs.push({
-      role: 'user',
-      content: `Context: applicant name is ${applicant.name}, email ${applicant.email}, mobile ${applicant.mobile}.`
-    });
-  } else {
-    for (const m of conversation) {
-      msgs.push({ role: m.role, content: m.content });
-    }
-  }
-
-  if (!isSystem) {
-    msgs.push({ role: 'user', content: userText });
-  }
-
-  return msgs;
 }
 
 // ─── DOM helpers ──────────────────────────────────────────
 function appendMessage(role, text) {
-  const win  = document.getElementById('chat-window');
-  const wrap = document.createElement('div');
+  const win    = document.getElementById('chat-window');
+  const wrap   = document.createElement('div');
   wrap.className = `msg msg-${role}`;
 
   const label  = document.createElement('div');
-  label.className = 'msg-label';
-  label.textContent = role === 'agent' ? 'Yarntons' : applicant.name.split(' ')[0] || 'You';
+  label.className   = 'msg-label';
+  label.textContent = role === 'agent' ? 'Yarntons' : firstName();
 
   const bubble = document.createElement('div');
-  bubble.className = 'msg-bubble';
+  bubble.className   = 'msg-bubble';
   bubble.textContent = text;
 
   wrap.appendChild(label);
@@ -201,24 +162,22 @@ function appendMessage(role, text) {
 }
 
 function showLoading() {
-  const loading = document.getElementById('chat-loading');
-  if (loading) {
-    loading.style.display = 'flex';
-    const win = document.getElementById('chat-window');
-    win.scrollTop = win.scrollHeight;
+  const el = document.getElementById('chat-loading');
+  if (el) {
+    el.style.display = 'flex';
+    document.getElementById('chat-window').scrollTop = 9999;
   }
 }
 
 function hideLoading() {
-  const loading = document.getElementById('chat-loading');
-  if (loading) loading.style.display = 'none';
+  const el = document.getElementById('chat-loading');
+  if (el) el.style.display = 'none';
 }
 
 function setInputEnabled(enabled) {
-  const input = document.getElementById('chat-input');
-  const send  = document.getElementById('chat-send');
-  input.disabled = !enabled;
-  send.disabled  = !enabled;
+  document.getElementById('chat-input').disabled = !enabled;
+  document.getElementById('chat-send').disabled  = !enabled;
+  if (enabled) document.getElementById('chat-input').focus();
 }
 
 function autoResize(el) {
@@ -235,12 +194,18 @@ function handleKey(e) {
 
 function showErr(msg) {
   const el = document.getElementById('err-msg');
-  el.textContent = msg;
+  el.textContent  = msg;
   el.style.display = 'block';
 }
 
-function generateId() {
-  return 'conv_' + Math.random().toString(36).slice(2, 11);
+function firstName() {
+  return (applicant.name || 'You').split(' ')[0];
+}
+
+function formatTranscript(msgs) {
+  return msgs
+    .map(m => `${m.role === 'assistant' ? 'Yarntons' : applicant.name}: ${m.content}`)
+    .join('\n\n');
 }
 
 // ─── Google Sheets logging ────────────────────────────────

@@ -135,6 +135,12 @@
 
   </div>
 
+  <!-- ElevenLabs Conversational AI client SDK -->
+  <script src="https://cdn.jsdelivr.net/npm/@11labs/client@latest/dist/index.umd.js"></script>
+  <script>
+    // Make SDK available as window.ElevenLabsClient
+    window.ElevenLabsClient = window['@11labs/client'] || window.ElevenLabsClient || {};
+  </script>
   <script src="main.js"></script>
 
 </body>
