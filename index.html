@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Join the Team — Yarntons</title>
-  <meta name="description" content="Fashion Sales Assistant, part time across Birkenhead and Devonport. We're a small family business that's been part of the North Shore since 1945.">
+  <meta name="description" content="Fashion Sales Assistant, part time across Birkenhead and Devonport.">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;600&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
@@ -21,7 +21,7 @@
       </a>
     </div>
 
-    <!-- Step 1: Role description -->
+    <!-- ─── Step 1: Role + contact details ─────────────────── -->
     <div class="step active" id="step-role">
 
       <div class="role-tag">Now hiring</div>
@@ -54,21 +54,10 @@
 
       <p class="not-a-fit">This probably isn't the right fit if you're looking for something short-term, or if you do your best work in a fast, high-volume environment. We're quiet in the right way — community-driven, not transactional.</p>
 
-      <div class="cta-block">
-        <p>If that sounds like you, we'd love to hear from you. Takes about two minutes.</p>
-        <button class="btn-primary" onclick="showStep('step-apply')">Put your hand up</button>
-      </div>
+      <hr class="section-rule">
 
-    </div>
-
-    <!-- Step 2: Application form -->
-    <div class="step" id="step-apply">
-
-      <button class="btn-back" onclick="showStep('step-role')">← Back to the role</button>
-
-      <div class="role-tag">Application</div>
-      <h1>Tell us a bit<br>about yourself</h1>
-      <p class="form-intro">We keep it simple at this stage. If we think you could be a good fit, we'll be in touch to have a proper conversation.</p>
+      <div class="section-label">Your details</div>
+      <p class="form-intro">Pop your details in and we'll take you straight through to a quick five-minute chat.</p>
 
       <div class="form-group">
         <label for="f-name">Your name</label>
@@ -81,30 +70,66 @@
       </div>
 
       <div class="form-group">
-        <label for="f-about">A bit about yourself</label>
-        <textarea id="f-about" name="about" placeholder="Where have you worked, what draws you to Yarntons, and why do you think you'd be a good fit..."></textarea>
-        <div class="form-footnote">No need for a CV or formal letter — just talk to us like a person.</div>
+        <label for="f-mobile">Mobile number</label>
+        <input type="tel" id="f-mobile" name="mobile" placeholder="021 000 0000" autocomplete="tel">
       </div>
 
       <div id="err-msg" class="err-msg" style="display:none;"></div>
 
-      <div class="submit-row">
-        <button class="btn-primary" id="submit-btn" onclick="handleSubmit()">
-          <span class="btn-text">Send my details</span>
-          <span class="spinner"></span>
-        </button>
-        <span class="submit-note">We'll read every application personally.</span>
+      <div class="cta-block">
+        <p>Takes about five minutes. Someone from the team reads every response personally.</p>
+        <button class="btn-primary" onclick="handleStart()">Let's go</button>
       </div>
 
     </div>
 
-    <!-- Step 3: Success -->
+    <!-- ─── Step 2: ElevenLabs text chat ────────────────────── -->
+    <div class="step" id="step-chat">
+
+      <div class="chat-header">
+        <div class="chat-header-left">
+          <div class="chat-avatar">Y</div>
+          <div>
+            <div class="chat-name">Yarntons</div>
+            <div class="chat-status">
+              <span class="status-dot"></span> Ready to chat
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="chat-window" id="chat-window">
+        <div class="chat-loading" id="chat-loading">
+          <span></span><span></span><span></span>
+        </div>
+      </div>
+
+      <div class="chat-input-row">
+        <textarea
+          id="chat-input"
+          class="chat-input"
+          placeholder="Type your reply..."
+          rows="1"
+          onkeydown="handleKey(event)"
+          oninput="autoResize(this)"
+        ></textarea>
+        <button class="chat-send" id="chat-send" onclick="sendMessage()" aria-label="Send">
+          <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+            <path d="M2 8L14 2L8 14L7 9L2 8Z" fill="currentColor"/>
+          </svg>
+        </button>
+      </div>
+
+      <p class="chat-footnote">Your responses are saved and reviewed by the Yarntons team.</p>
+
+    </div>
+
+    <!-- ─── Step 3: Done ─────────────────────────────────────── -->
     <div class="step" id="step-done">
       <div class="success-block">
         <div class="success-mark">✓</div>
         <h2>Thanks — we'll be in touch.</h2>
-        <p>We've got your details and we'll read your application properly. If we think there's a fit, someone from the team will reach out directly.</p>
-        <div class="gs-status" id="gs-status"></div>
+        <p>We've read your responses and someone from the team will reach out directly if we think there's a good fit.</p>
       </div>
     </div>
 

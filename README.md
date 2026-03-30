@@ -1,66 +1,80 @@
 # Yarntons — Job Application Page
 
-Simple two-step job application page. Collects name, email, and a short about-me, writes to a Google Sheet.
+Two-step experience: applicant reads the role and enters their details, then has a short text conversation with an ElevenLabs AI agent. The full transcript is saved to Google Sheets.
 
 ## Files
 
 ```
-index.html              — the page
+index.html              — the page (role description + form + chat interface)
 style.css               — all styles
-main.js                 — form logic and step navigation
-google-apps-script.js   — paste this into Google Apps Script (not uploaded to GitHub)
+main.js                 — form logic, ElevenLabs chat, Google Sheets logging
+google-apps-script.js   — paste into Google Apps Script (do not commit with real IDs)
 ```
 
 ---
 
 ## Setup
 
-### 1. Google Sheet
+### 1. ElevenLabs agent
 
-Create a new Google Sheet. Name the first tab `Applications`.  
-Copy the Sheet ID from the URL — it's the string between `/d/` and `/edit`.
+Agent ID is already set in `main.js`:
+```
+agent_3901kmy8q67ke5qs7b51whkady4z
+```
+No further config needed — the agent prompt is managed in ElevenLabs.
 
-### 2. Google Apps Script
+### 2. Google Sheet
+
+Create a new Google Sheet. The script will auto-create an `Applications` tab with headers.  
+Copy the Sheet ID from the URL (the string between `/d/` and `/edit`).
+
+### 3. Google Apps Script
 
 1. Go to [script.google.com](https://script.google.com) → New project
-2. Paste the contents of `google-apps-script.js`
+2. Paste `google-apps-script.js`
 3. Replace `YOUR_GOOGLE_SHEET_ID_HERE` with your Sheet ID
-4. Click **Deploy → New deployment → Web app**
+4. **Deploy → New deployment → Web app**
    - Execute as: **Me**
    - Who has access: **Anyone**
-5. Authorise when prompted
-6. Copy the deployment URL
+5. Authorise when prompted, copy the deployment URL
 
-### 3. Connect the form
+### 4. Wire it up
 
 In `main.js`, replace:
 ```js
 const SHEET_URL = 'YOUR_GOOGLE_APPS_SCRIPT_URL_HERE';
 ```
-with your deployment URL.
 
-### 4. Deploy to Vercel
+### 5. Deploy to Vercel
 
 ```bash
-# Install Vercel CLI if you haven't
 npm i -g vercel
-
-# From the project folder
-vercel
-
-# Follow the prompts — framework: Other, output directory: ./
-# On subsequent deploys:
 vercel --prod
 ```
 
-Or connect your GitHub repo in the Vercel dashboard for automatic deploys on push.
+Or connect the GitHub repo in the Vercel dashboard for auto-deploys on push.
 
 ---
 
-## Local development
+## What gets logged to Sheets
 
-No build step needed. Just open `index.html` in a browser, or run:
+| Column | Content |
+|---|---|
+| Timestamp | ISO datetime |
+| Name | From step 1 form |
+| Email | From step 1 form |
+| Mobile | From step 1 form |
+| Stage | `Started` or `Completed` |
+| Transcript | Full Q&A formatted as readable text |
+
+Two writes per applicant: one when they start, one when the conversation ends.
+
+---
+
+## Local dev
 
 ```bash
 npx serve .
 ```
+
+Note: The ElevenLabs chat requires a live domain. For local testing, use a tunnel like [ngrok](https://ngrok.com) or deploy to Vercel preview.
