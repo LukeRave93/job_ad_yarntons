@@ -77,8 +77,19 @@
       <div id="err-msg" class="err-msg" style="display:none;"></div>
 
       <div class="cta-block">
-        <p>Takes about five minutes. Someone from the team reads every response personally.</p>
-        <button class="btn-primary" onclick="handleStart()">Let's go</button>
+        <p>Takes about five minutes. Choose how you'd like to chat.</p>
+        <div class="mode-picker">
+          <button class="btn-mode" onclick="handleStart('text')">
+            <span class="mode-icon">✎</span>
+            <span class="mode-label">Type my answers</span>
+            <span class="mode-sub">Works on any device</span>
+          </button>
+          <button class="btn-mode" onclick="handleStart('voice')">
+            <span class="mode-icon">◎</span>
+            <span class="mode-label">Use my voice</span>
+            <span class="mode-sub">Phone or mic needed</span>
+          </button>
+        </div>
       </div>
 
     </div>
@@ -92,7 +103,7 @@
           <div>
             <div class="chat-name">Yarntons</div>
             <div class="chat-status">
-              <span class="status-dot"></span> Ready to chat
+              <span class="status-dot"></span> <span id="chat-status-text">Connecting...</span>
             </div>
           </div>
         </div>
@@ -104,7 +115,8 @@
         </div>
       </div>
 
-      <div class="chat-input-row">
+      <!-- Text mode input -->
+      <div class="chat-input-row" id="text-input-row">
         <textarea
           id="chat-input"
           class="chat-input"
@@ -118,6 +130,12 @@
             <path d="M2 8L14 2L8 14L7 9L2 8Z" fill="currentColor"/>
           </svg>
         </button>
+      </div>
+
+      <!-- Voice mode indicator -->
+      <div class="voice-row" id="voice-row" style="display:none;">
+        <div class="voice-orb" id="voice-orb"></div>
+        <p class="voice-hint" id="voice-hint">Listening...</p>
       </div>
 
       <p class="chat-footnote">Your responses are saved and reviewed by the Yarntons team.</p>

@@ -5,11 +5,12 @@ const SHEET_URL = 'YOUR_GOOGLE_APPS_SCRIPT_URL_HERE';
 // ─── State ────────────────────────────────────────────────
 let applicant    = { name: '', email: '', mobile: '' };
 let conversation = [];
-let convSession  = null;   // ElevenLabs Conversation instance
+let convSession  = null;
 let chatEnded    = false;
+let chatMode     = 'text'; // 'text' | 'voice'
 
 // ─── Step 1: Validate and proceed ─────────────────────────
-function handleStart() {
+function handleStart(mode) {
   const name   = document.getElementById('f-name').value.trim();
   const email  = document.getElementById('f-email').value.trim();
   const mobile = document.getElementById('f-mobile').value.trim();
@@ -17,15 +18,18 @@ function handleStart() {
 
   errEl.style.display = 'none';
 
-  if (!name)                         return showErr('Please add your name.');
+  if (!name)                          return showErr('Please add your name.');
   if (!email || !email.includes('@')) return showErr('Please enter a valid email address.');
-  if (!mobile || mobile.length < 7)  return showErr('Please add your mobile number.');
+  if (!mobile || mobile.length < 7)   return showErr('Please add your mobile number.');
 
   applicant = { name, email, mobile };
-  logToSheet({ ...applicant, stage: 'started', timestamp: new Date().toISOString() });
+  chatMode  = mode;
+
+  logToSheet({ ...applicant, mode, stage: 'started', timestamp: new Date().toISOString() });
 
   showStep('step-chat');
-  initChat();
+  setupChatUI(mode);
+  initChat(mode);
 }
 
 // ─── Step navigation ──────────────────────────────────────
@@ -35,8 +39,25 @@ function showStep(id) {
   window.scrollTo({ top: 0, behavior: 'smooth' });
 }
 
-// ─── Init ElevenLabs text-only session ────────────────────
-async function initChat() {
+// ─── Configure UI for chosen mode ─────────────────────────
+function setupChatUI(mode) {
+  const textRow  = document.getElementById('text-input-row');
+  const voiceRow = document.getElementById('voice-row');
+  const status   = document.getElementById('chat-status-text');
+
+  if (mode === 'voice') {
+    textRow.style.display  = 'none';
+    voiceRow.style.display = 'flex';
+    status.textContent     = 'Connecting...';
+  } else {
+    textRow.style.display  = 'flex';
+    voiceRow.style.display = 'none';
+    status.textContent     = 'Connecting...';
+  }
+}
+
+// ─── Init ElevenLabs session ───────────────────────────────
+async function initChat(mode) {
   showLoading();
   setInputEnabled(false);
 
@@ -48,12 +69,10 @@ async function initChat() {
     convSession = await Conversation.startSession({
       agentId: AGENT_ID,
 
-      // textOnly must go through overrides.conversation.textOnly per SDK source
       overrides: {
-        conversation: { textOnly: true }
+        conversation: { textOnly: mode === 'text' }
       },
 
-      // dynamicVariables are passed to the agent — define matching {{variable}} in the agent prompt
       dynamicVariables: {
         applicant_name:   applicant.name,
         applicant_email:  applicant.email,
@@ -62,12 +81,28 @@ async function initChat() {
 
       onConnect: () => {
         hideLoading();
-        setInputEnabled(true);
-        document.getElementById('chat-input').focus();
+        document.getElementById('chat-status-text').textContent = 'Ready to chat';
+        if (mode === 'text') {
+          setInputEnabled(true);
+          document.getElementById('chat-input').focus();
+        } else {
+          // Voice mode — orb shows listening state
+          setVoiceState('listening');
+        }
       },
 
       onDisconnect: () => {
-        if (!chatEnded) setInputEnabled(false);
+        if (!chatEnded) {
+          document.getElementById('chat-status-text').textContent = 'Disconnected';
+          if (mode === 'voice') setVoiceState('idle');
+        }
+      },
+
+      onModeChange: (data) => {
+        // Voice mode: update orb based on whether agent is speaking or listening
+        if (mode === 'voice') {
+          setVoiceState(data.mode === 'speaking' ? 'speaking' : 'listening');
+        }
       },
 
       onMessage: (msg) => {
@@ -84,15 +119,25 @@ async function initChat() {
 
           if (endPhrases.some(p => msg.message.toLowerCase().includes(p))) {
             chatEnded = true;
-            setInputEnabled(false);
+            if (mode === 'text') setInputEnabled(false);
+            if (mode === 'voice') setVoiceState('idle');
             logToSheet({
               ...applicant,
+              mode,
               stage: 'completed',
               transcript: formatTranscript(conversation),
               timestamp: new Date().toISOString()
             });
             setTimeout(() => showStep('step-done'), 2200);
+          } else {
+            if (mode === 'text') setInputEnabled(true);
           }
+        }
+
+        // Voice mode: also show user transcripts in the chat window
+        if (msg.source === 'user' && mode === 'voice' && msg.message) {
+          appendMessage('user', msg.message);
+          conversation.push({ role: 'user', content: msg.message });
         }
       },
 
@@ -100,7 +145,8 @@ async function initChat() {
         console.error('ElevenLabs error:', err);
         hideLoading();
         appendMessage('agent', 'Something went wrong on our end — feel free to email us at careers@yarntons.co.nz.');
-        setInputEnabled(false);
+        if (mode === 'text') setInputEnabled(false);
+        if (mode === 'voice') setVoiceState('idle');
         chatEnded = true;
       }
     });
@@ -178,6 +224,14 @@ function setInputEnabled(enabled) {
   document.getElementById('chat-input').disabled = !enabled;
   document.getElementById('chat-send').disabled  = !enabled;
   if (enabled) document.getElementById('chat-input').focus();
+}
+
+function setVoiceState(state) {
+  const orb  = document.getElementById('voice-orb');
+  const hint = document.getElementById('voice-hint');
+  if (!orb) return;
+  orb.className = 'voice-orb voice-orb--' + state;
+  hint.textContent = state === 'speaking' ? 'Yarntons is speaking...' : 'Listening — just talk';
 }
 
 function autoResize(el) {

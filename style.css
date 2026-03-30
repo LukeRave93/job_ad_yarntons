@@ -410,6 +410,103 @@ h2 {
   letter-spacing: 0.02em;
 }
 
+/* ─── Mode picker ────────────────────────────────────────── */
+.mode-picker {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+  margin-top: 0.25rem;
+}
+
+.btn-mode {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 3px;
+  background: #ffffff;
+  border: 0.5px solid rgba(26, 26, 24, 0.2);
+  border-radius: 3px;
+  padding: 14px 16px;
+  cursor: pointer;
+  text-align: left;
+  transition: border-color 0.15s, background 0.15s;
+  font-family: 'DM Sans', sans-serif;
+}
+
+.btn-mode:hover {
+  border-color: rgba(26, 26, 24, 0.5);
+  background: #faf9f6;
+}
+
+.mode-icon {
+  font-size: 16px;
+  margin-bottom: 4px;
+  color: #1a1a18;
+  font-style: normal;
+}
+
+.mode-label {
+  font-size: 13px;
+  font-weight: 500;
+  color: #1a1a18;
+  letter-spacing: 0.01em;
+}
+
+.mode-sub {
+  font-size: 11px;
+  color: #888780;
+  letter-spacing: 0.02em;
+}
+
+/* ─── Voice orb ──────────────────────────────────────────── */
+.voice-row {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 2rem 0 1rem;
+  gap: 1rem;
+}
+
+.voice-orb {
+  width: 64px;
+  height: 64px;
+  border-radius: 50%;
+  background: #eeece6;
+  border: 0.5px solid rgba(26, 26, 24, 0.15);
+  transition: background 0.3s, transform 0.3s;
+}
+
+.voice-orb--listening {
+  background: #eeece6;
+  animation: pulse-listen 2s ease-in-out infinite;
+}
+
+.voice-orb--speaking {
+  background: #1a1a18;
+  animation: pulse-speak 0.8s ease-in-out infinite;
+}
+
+.voice-orb--idle {
+  background: #eeece6;
+  animation: none;
+}
+
+@keyframes pulse-listen {
+  0%, 100% { transform: scale(1);    opacity: 1; }
+  50%       { transform: scale(1.06); opacity: 0.8; }
+}
+
+@keyframes pulse-speak {
+  0%, 100% { transform: scale(1);    }
+  50%       { transform: scale(1.12); }
+}
+
+.voice-hint {
+  font-size: 13px;
+  color: #888780;
+  letter-spacing: 0.02em;
+}
+
 /* ─── Success ────────────────────────────────────────────── */
 .success-block {
   text-align: center;
