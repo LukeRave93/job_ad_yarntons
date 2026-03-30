@@ -1,0 +1,116 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Join the Team — Yarntons</title>
+  <meta name="description" content="Fashion Sales Assistant, part time across Birkenhead and Devonport. We're a small family business that's been part of the North Shore since 1945.">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;600&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+  <div class="wrap">
+
+    <div class="brand-bar">
+      <a href="https://yarntons.co.nz" class="brand-link">
+        <div class="brand-name">Yarntons</div>
+        <div class="brand-est">Est. 1945 — Birkenhead &amp; Devonport</div>
+      </a>
+    </div>
+
+    <!-- Step 1: Role description -->
+    <div class="step active" id="step-role">
+
+      <div class="role-tag">Now hiring</div>
+      <h1>Fashion Sales<br>Assistant</h1>
+      <div class="location-line">Part time &nbsp;·&nbsp; Birkenhead &amp; Devonport &nbsp;·&nbsp; Immediate start</div>
+
+      <div class="body-block">
+        <p>We're not a chain. We're not a department store. We're a small family business that's been part of the North Shore since 1945, and we try to make our stores feel like it.</p>
+        <p>Our team genuinely knows our customers — not just their size, but their life. People come back year after year because someone here made them feel looked after. That's not something you can fake, and it's not something we can teach quickly.</p>
+        <p>We're looking for someone who already gets that. Someone who finds real satisfaction in a good fitting room conversation, who can read a customer, and who takes pride in selling something they'd actually recommend.</p>
+      </div>
+
+      <hr class="section-rule">
+
+      <div class="section-label">The role</div>
+      <div class="body-block">
+        <p>Four days a week across Birkenhead and Devonport, including part of the weekend. The core of the job is customer service and sales, primarily in womenswear. You'll work with a carefully selected range of quality brands, get to know them well, and help customers find what's right for them.</p>
+        <p>If you've got skills in social media or website content, that's a bonus we'd love to grow over time — but it's not the job today.</p>
+      </div>
+
+      <hr class="section-rule">
+
+      <div class="section-label">Who we're looking for</div>
+      <div class="detail-list">
+        <div class="detail-item"><div class="detail-dot"></div><span>Genuine experience in fashion retail</span></div>
+        <div class="detail-item"><div class="detail-dot"></div><span>Someone who wants to be somewhere for the long haul</span></div>
+        <div class="detail-item"><div class="detail-dot"></div><span>Personality, and a real willingness to learn</span></div>
+        <div class="detail-item"><div class="detail-dot"></div><span>Someone who genuinely cares about clothes — our customers will notice if you don't</span></div>
+      </div>
+
+      <p class="not-a-fit">This probably isn't the right fit if you're looking for something short-term, or if you do your best work in a fast, high-volume environment. We're quiet in the right way — community-driven, not transactional.</p>
+
+      <div class="cta-block">
+        <p>If that sounds like you, we'd love to hear from you. Takes about two minutes.</p>
+        <button class="btn-primary" onclick="showStep('step-apply')">Put your hand up</button>
+      </div>
+
+    </div>
+
+    <!-- Step 2: Application form -->
+    <div class="step" id="step-apply">
+
+      <button class="btn-back" onclick="showStep('step-role')">← Back to the role</button>
+
+      <div class="role-tag">Application</div>
+      <h1>Tell us a bit<br>about yourself</h1>
+      <p class="form-intro">We keep it simple at this stage. If we think you could be a good fit, we'll be in touch to have a proper conversation.</p>
+
+      <div class="form-group">
+        <label for="f-name">Your name</label>
+        <input type="text" id="f-name" name="name" placeholder="First and last name" autocomplete="name">
+      </div>
+
+      <div class="form-group">
+        <label for="f-email">Email address</label>
+        <input type="email" id="f-email" name="email" placeholder="you@email.com" autocomplete="email">
+      </div>
+
+      <div class="form-group">
+        <label for="f-about">A bit about yourself</label>
+        <textarea id="f-about" name="about" placeholder="Where have you worked, what draws you to Yarntons, and why do you think you'd be a good fit..."></textarea>
+        <div class="form-footnote">No need for a CV or formal letter — just talk to us like a person.</div>
+      </div>
+
+      <div id="err-msg" class="err-msg" style="display:none;"></div>
+
+      <div class="submit-row">
+        <button class="btn-primary" id="submit-btn" onclick="handleSubmit()">
+          <span class="btn-text">Send my details</span>
+          <span class="spinner"></span>
+        </button>
+        <span class="submit-note">We'll read every application personally.</span>
+      </div>
+
+    </div>
+
+    <!-- Step 3: Success -->
+    <div class="step" id="step-done">
+      <div class="success-block">
+        <div class="success-mark">✓</div>
+        <h2>Thanks — we'll be in touch.</h2>
+        <p>We've got your details and we'll read your application properly. If we think there's a fit, someone from the team will reach out directly.</p>
+        <div class="gs-status" id="gs-status"></div>
+      </div>
+    </div>
+
+  </div>
+
+  <script src="main.js"></script>
+
+</body>
+</html>
